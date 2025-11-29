@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
 
-interface LoginProps {
-  onLogin: () => void;
-}
-
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { login, isLoading } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin();
+    login({ email, password });
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden group/design-root">
+    <div className="relative flex w-full flex-col group/design-root">
       <div className="flex-grow">
         <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
-          
+
           {/* Left Panel (Visual) */}
           <div className="hidden lg:flex flex-col items-center justify-center bg-gray-100 dark:bg-black/20 p-12 relative overflow-hidden">
-             {/* Decorative Background glow */}
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/20 rounded-full blur-3xl"></div>
+            {/* Decorative Background glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/20 rounded-full blur-3xl"></div>
 
             <div className="max-w-md w-full text-center relative z-10">
               <div className="flex justify-center mb-6">
@@ -43,12 +43,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
 
           {/* Right Panel (Form) */}
-          <div className="flex items-center justify-center p-6 sm:p-12 bg-background-light dark:bg-background-dark">
-            <div className="w-full max-w-md">
+          <div className="flex items-center justify-center p-6 sm:p-12 bg-background-light dark:bg-background-dark overflow-y-auto">
+            <div className="w-full max-w-md py-8">
               <div className="flex justify-center lg:hidden mb-6">
                 <span className="material-symbols-outlined text-primary text-5xl">groups</span>
               </div>
-              
+
               <div className="text-left">
                 <h1 className="text-gray-900 dark:text-white tracking-tight text-[32px] font-bold leading-tight font-display">Admin Login</h1>
                 <p className="text-gray-600 dark:text-gray-400 text-base font-normal leading-normal mt-2 font-display">Welcome back, please enter your details.</p>
@@ -63,7 +63,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       id="email"
                       name="email"
                       type="text"
-                      defaultValue="admin@communityhq.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       required
                       className="form-input flex w-full rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-white/10 bg-white dark:bg-surface-dark focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 pl-10 px-4 text-base font-normal font-display transition-all"
                       placeholder="Enter your email or username"
@@ -79,7 +80,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                       id="password"
                       name="password"
                       type={showPassword ? "text" : "password"}
-                      defaultValue="password123"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       required
                       className="form-input flex w-full rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 border border-gray-300 dark:border-white/10 bg-white dark:bg-surface-dark focus:border-primary h-12 placeholder:text-gray-400 dark:placeholder:text-gray-500 pl-10 pr-10 px-4 text-base font-normal font-display transition-all"
                       placeholder="Enter your password"
@@ -102,9 +104,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
                 <button
                   type="submit"
-                  className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-base font-semibold rounded-lg text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50 transition-all shadow-lg shadow-primary/25"
+                  disabled={isLoading}
+                  className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-base font-semibold rounded-lg text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50 transition-all shadow-lg shadow-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Login
+                  {isLoading ? 'Logging in...' : 'Login'}
                 </button>
               </form>
 

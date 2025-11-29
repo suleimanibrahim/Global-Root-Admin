@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Sidebar from './components/Sidebar';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Communities from './pages/Communities';
 import CommunityRequests from './pages/CommunityRequests';
 import MemberRequests from './pages/MemberRequests';
+import { AuthProvider } from './context/AuthContext';
+import AuthGuard from './components/AuthGuard';
+
+const queryClient = new QueryClient();
 
 // Header component handling Title based on Route and Mobile Toggle
 const Header: React.FC<{ title: string; onMenuClick: () => void }> = ({ title, onMenuClick }) => {
@@ -50,7 +55,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       {/* Overlay for mobile menu */}
       {mobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-20 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
@@ -58,11 +63,11 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen">
-        <Header 
-          title={getTitle(location.pathname)} 
+        <Header
+          title={getTitle(location.pathname)}
           onMenuClick={() => setMobileMenuOpen(true)}
         />
-        
+
         <main className="flex-1 overflow-y-auto p-4 lg:p-8 scroll-smooth">
           {children}
         </main>
@@ -72,48 +77,34 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Check for existing session (mock)
-  useEffect(() => {
-    const session = localStorage.getItem('auth_session');
-    if (session) setIsAuthenticated(true);
-  }, []);
-
-  const handleLogin = () => {
-    localStorage.setItem('auth_session', 'true');
-    setIsAuthenticated(true);
-  };
-
   return (
-    <HashRouter>
-      <Routes>
-        <Route 
-          path="/login" 
-          element={!isAuthenticated ? <Login onLogin={handleLogin} /> : <Navigate to="/" replace />} 
-        />
-        
-        <Route
-          path="/*"
-          element={
-            isAuthenticated ? (
-              <AppLayout>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/communities" element={<Communities />} />
-                  <Route path="/community-requests" element={<CommunityRequests />} />
-                  <Route path="/member-requests" element={<MemberRequests />} />
-                  <Route path="/settings" element={<div className="text-center text-gray-500 mt-20">Settings page placeholder</div>} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </AppLayout>
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-      </Routes>
-    </HashRouter>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <HashRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+
+            <Route
+              path="/*"
+              element={
+                <AuthGuard>
+                  <AppLayout>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/communities" element={<Communities />} />
+                      <Route path="/community-requests" element={<CommunityRequests />} />
+                      <Route path="/member-requests" element={<MemberRequests />} />
+                      <Route path="/settings" element={<div className="text-center text-gray-500 mt-20">Settings page placeholder</div>} />
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </AppLayout>
+                </AuthGuard>
+              }
+            />
+          </Routes>
+        </HashRouter>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 };
 

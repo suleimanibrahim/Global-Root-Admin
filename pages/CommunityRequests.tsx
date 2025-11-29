@@ -1,38 +1,78 @@
 import React, { useState } from 'react';
-import { MOCK_COMMUNITY_REQUESTS } from '../constants';
+import { useCommunities } from '../hooks/useCommunities';
+import { useAuthContext } from '../context/AuthContext';
+import Swal from 'sweetalert2';
 
 const CommunityRequests: React.FC = () => {
-  const [requests, setRequests] = useState(MOCK_COMMUNITY_REQUESTS);
+  const [page, setPage] = useState(1);
+  const { usePendingCommunityRequests, useApproveCommunity, useRejectCommunity } = useCommunities();
+  const { data: requestsData, isLoading, isError } = usePendingCommunityRequests(page);
+  const approveMutation = useApproveCommunity();
+  const rejectMutation = useRejectCommunity();
+  const { user } = useAuthContext();
 
-  const handleAction = (id: string) => {
-    // Simulate approval/rejection by removing item
-    setRequests(prev => prev.filter(req => req.id !== id));
+  const handleApprove = (id: string) => {
+    if (!user?.id) return;
+
+    Swal.fire({
+      title: 'Approve Community?',
+      text: "Are you sure you want to approve this community?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, approve it!'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        approveMutation.mutate({ id, approvedBy: user.id });
+      }
+    });
   };
+
+  const handleReject = (id: string) => {
+    if (!user?.id) return;
+
+    Swal.fire({
+      title: 'Reject Community',
+      input: 'text',
+      inputLabel: 'Reason for rejection',
+      inputPlaceholder: 'Enter reason...',
+      showCancelButton: true,
+      confirmButtonText: 'Reject',
+      showLoaderOnConfirm: true,
+      preConfirm: (reason) => {
+        if (!reason) {
+          Swal.showValidationMessage('Reason is required');
+        }
+        return reason;
+      },
+      allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+      if (result.isConfirmed) {
+        rejectMutation.mutate({ id, rejectedBy: user.id, reason: result.value });
+      }
+    });
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64">Loading requests...</div>;
+  }
+
+  if (isError) {
+    return <div className="text-red-500 text-center h-64">Error loading requests.</div>;
+  }
+
+  const requests = requestsData?.items || [];
+  const totalPages = requestsData?.totalPages || 1;
 
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col gap-6">
-       {/* Header */}
-       <div className="flex flex-wrap justify-between items-center gap-4 mb-2">
+      {/* Header */}
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-2">
         <h1 className="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">Pending Community Requests</h1>
       </div>
 
-      {/* Search */}
-      <div className="w-full">
-         <div className="flex w-full items-stretch rounded-lg h-12 bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary overflow-hidden">
-            <div className="flex items-center justify-center pl-4 text-gray-400 dark:text-gray-500">
-              <span className="material-symbols-outlined text-xl">search</span>
-            </div>
-            <input 
-              type="text"
-              placeholder="Search by community name or requester"
-              className="w-full bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 px-4 h-full text-base"
-            />
-          </div>
-      </div>
-
-      {/* Grid of Requests (List View Style from Screenshot 5, but let's stick to the Table view from Screenshot 2 for this page specifically as per structure) */}
-      {/* Correction: The user wants "Pending Community Requests" page. Screenshot 2 is a table. Screenshot 5 shows a "card/list" view for "Community Creation Requests". I will implement the Table view from Screenshot 2 as it's more data-dense and explicitly named "Pending Community Requests". */}
-
+      {/* Grid of Requests */}
       <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-surface-dark shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
@@ -40,6 +80,7 @@ const CommunityRequests: React.FC = () => {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Community Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Requester</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Submission Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
               </tr>
@@ -48,31 +89,38 @@ const CommunityRequests: React.FC = () => {
               {requests.map((req) => (
                 <tr key={req.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{req.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{req.requesterEmail}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{req.submissionDate}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex flex-col">
+                      <span>{req.email}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{req.location}, {req.state}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{new Date(req.createdAt).toLocaleDateString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center gap-2">
-                       <button 
-                        onClick={() => handleAction(req.id)}
-                        className="px-3 py-1 text-xs font-semibold text-white bg-green-600 rounded-full hover:bg-green-700 transition-colors shadow-sm"
-                       >
-                         Approve
-                       </button>
-                       <button 
-                        onClick={() => handleAction(req.id)}
-                        className="px-3 py-1 text-xs font-semibold text-white bg-red-600 rounded-full hover:bg-red-700 transition-colors shadow-sm"
-                       >
-                         Reject
-                       </button>
+                      <button
+                        onClick={() => handleApprove(req.id)}
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
+                        className="px-3 py-1 text-xs font-semibold text-white bg-green-600 rounded-full hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                        {approveMutation.isPending ? '...' : 'Approve'}
+                      </button>
+                      <button
+                        onClick={() => handleReject(req.id)}
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
+                        className="px-3 py-1 text-xs font-semibold text-white bg-red-600 rounded-full hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                        {rejectMutation.isPending ? '...' : 'Reject'}
+                      </button>
                     </div>
                   </td>
                 </tr>
               ))}
               {requests.length === 0 && (
                 <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                        No pending requests.
-                    </td>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    No pending requests.
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -80,22 +128,30 @@ const CommunityRequests: React.FC = () => {
         </div>
       </div>
 
-       {/* Pagination */}
-       {requests.length > 0 && (
+      {/* Pagination */}
+      {totalPages > 1 && (
         <div className="flex items-center justify-center pt-6">
-            <nav className="flex items-center gap-1">
-                <button className="flex size-9 items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                    <span className="material-symbols-outlined text-xl">chevron_left</span>
-                </button>
-                <button className="text-sm font-bold flex size-9 items-center justify-center text-white bg-primary rounded-lg">1</button>
-                <button className="text-sm font-medium flex size-9 items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">2</button>
-                <span className="text-sm font-medium flex size-9 items-center justify-center text-gray-500 dark:text-gray-400">...</span>
-                <button className="flex size-9 items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                    <span className="material-symbols-outlined text-xl">chevron_right</span>
-                </button>
-            </nav>
+          <nav className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="flex size-9 items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-xl">chevron_left</span>
+            </button>
+            <span className="text-sm font-medium flex items-center justify-center px-3 text-gray-700 dark:text-gray-300">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="flex size-9 items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-xl">chevron_right</span>
+            </button>
+          </nav>
         </div>
-       )}
+      )}
 
     </div>
   );
