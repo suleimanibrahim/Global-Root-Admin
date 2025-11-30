@@ -9,11 +9,10 @@ const Sidebar: React.FC = () => {
     { name: 'Dashboard', icon: 'dashboard', path: '/' },
     { name: 'Communities', icon: 'groups', path: '/communities' },
     { name: 'Pending Requests', icon: 'inbox', path: '/community-requests' },
-    { name: 'Settings', icon: 'settings', path: '/settings' },
   ];
 
   return (
-    <aside className="flex w-64 flex-col bg-white dark:bg-background-dark border-r border-gray-200 dark:border-border-dark flex-shrink-0 z-20">
+    <aside className="flex h-screen w-64 flex-col bg-white dark:bg-background-dark border-r border-gray-200 dark:border-border-dark flex-shrink-0 z-20">
       <div className="flex flex-col h-full p-4">
 
         {/* User Profile / Brand Area */}

@@ -25,10 +25,11 @@ export const useAuth = () => {
     const loginMutation = useMutation({
         mutationFn: async (credentials: LoginCredentials) => {
             const response = await api.post<LoginResponse>('/api/v1/auth/login', credentials);
-            return response.data;
+            return { ...response.data, credentials };
         },
         onSuccess: (data) => {
-            login(data.token, { id: data.id, role: data.role, email: '' }); // Email is not returned in response, might need to store from input or fetch profile
+            const { credentials, ...loginData } = data;
+            login(loginData.token, { id: loginData.id, role: loginData.role, email: credentials.email });
             Swal.fire({
                 icon: 'success',
                 title: 'Login Successful',

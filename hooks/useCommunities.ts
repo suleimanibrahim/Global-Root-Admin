@@ -68,38 +68,18 @@ interface PendingMemberResponse {
     data: MemberRequest[];
 }
 
-
-
-interface AllCommunitiesResponse {
-    status: number;
-    message: string;
-    data: {
-        items: Community[];
-        page: number;
-        pageSize: number;
-        totalItems: number;
-        totalPages: number;
-    };
-}
-
-interface PendingMemberResponse {
-    status: number;
-    message: string;
-    data: MemberRequest[];
-}
-
 // Hooks
 export const useCommunities = () => {
     const queryClient = useQueryClient();
 
     // Get All Communities
-    const useAllCommunities = (page = 1, limit = 10, name?: string) => {
+    const useAllCommunities = (page = 1, pageSize = 10, name?: string) => {
         return useQuery({
-            queryKey: ['allCommunities', page, limit, name],
+            queryKey: ['allCommunities', page, pageSize, name],
             queryFn: async () => {
                 const params = new URLSearchParams();
                 params.append('page', page.toString());
-                params.append('limit', limit.toString());
+                params.append('pageSize', pageSize.toString());
                 if (name) params.append('name', name);
                 const response = await api.get<AllCommunitiesResponse>(`/api/v1/cms/communities?${params.toString()}`);
                 console.log("All Communities", response.data);

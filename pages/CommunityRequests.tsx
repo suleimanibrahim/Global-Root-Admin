@@ -1,15 +1,27 @@
 import React, { useState } from 'react';
-import { useCommunities } from '../hooks/useCommunities';
+import { useCommunities, CommunityRequest } from '../hooks/useCommunities';
 import { useAuthContext } from '../context/AuthContext';
 import Swal from 'sweetalert2';
 
 const CommunityRequests: React.FC = () => {
   const [page, setPage] = useState(1);
+  const [selectedRequest, setSelectedRequest] = useState<CommunityRequest | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { usePendingCommunityRequests, useApproveCommunity, useRejectCommunity } = useCommunities();
   const { data: requestsData, isLoading, isError } = usePendingCommunityRequests(page);
   const approveMutation = useApproveCommunity();
   const rejectMutation = useRejectCommunity();
   const { user } = useAuthContext();
+
+  const handleViewDetails = (request: CommunityRequest) => {
+    setSelectedRequest(request);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedRequest(null);
+  };
 
   const handleApprove = (id: string) => {
     if (!user?.id) return;
@@ -99,6 +111,12 @@ const CommunityRequests: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => handleViewDetails(req)}
+                        className="px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors shadow-sm"
+                      >
+                        View
+                      </button>
+                      <button
                         onClick={() => handleApprove(req.id)}
                         disabled={approveMutation.isPending || rejectMutation.isPending}
                         className="px-3 py-1 text-xs font-semibold text-white bg-green-600 rounded-full hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50"
@@ -150,6 +168,145 @@ const CommunityRequests: React.FC = () => {
               <span className="material-symbols-outlined text-xl">chevron_right</span>
             </button>
           </nav>
+        </div>
+      )}
+
+      {/* View Details Modal */}
+      {isModalOpen && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={closeModal}>
+          <div className="bg-white dark:bg-surface-dark rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white dark:bg-surface-dark border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Community Request Details</h2>
+              <button
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <span className="material-symbols-outlined text-3xl">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-6 space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">Basic Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Community Name</label>
+                    <p className="text-base text-gray-900 dark:text-white mt-1">{selectedRequest.name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</label>
+                    <p className="mt-1">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                        {selectedRequest.status}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Description</label>
+                    <p className="text-base text-gray-900 dark:text-white mt-1">{selectedRequest.description}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location Details */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">Location Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Location</label>
+                    <p className="text-base text-gray-900 dark:text-white mt-1">{selectedRequest.location}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">State</label>
+                    <p className="text-base text-gray-900 dark:text-white mt-1">{selectedRequest.state}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">LGA</label>
+                    <p className="text-base text-gray-900 dark:text-white mt-1">{selectedRequest.lga}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Requester Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">Requester Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</label>
+                    <p className="text-base text-gray-900 dark:text-white mt-1">{selectedRequest.email}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Requested By (User ID)</label>
+                    <p className="text-xs text-gray-900 dark:text-white mt-1 font-mono break-all">{selectedRequest.requestedBy}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* System Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">System Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Request ID</label>
+                    <p className="text-xs text-gray-900 dark:text-white mt-1 font-mono break-all">{selectedRequest.id}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Community ID</label>
+                    <p className="text-xs text-gray-900 dark:text-white mt-1 font-mono">{selectedRequest.communityId || 'Not assigned yet'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Created At</label>
+                    <p className="text-base text-gray-900 dark:text-white mt-1">{new Date(selectedRequest.createdAt).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Updated At</label>
+                    <p className="text-base text-gray-900 dark:text-white mt-1">{new Date(selectedRequest.updatedAt).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Approved By</label>
+                    <p className="text-xs text-gray-900 dark:text-white mt-1 font-mono">{selectedRequest.approvedBy || 'Not approved yet'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Rejection Reason</label>
+                    <p className="text-base text-gray-900 dark:text-white mt-1">{selectedRequest.rejectionReason || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800 px-6 py-4 flex justify-end gap-3">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-surface-dark border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  closeModal();
+                  handleApprove(selectedRequest.id);
+                }}
+                disabled={approveMutation.isPending || rejectMutation.isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                Approve
+              </button>
+              <button
+                onClick={() => {
+                  closeModal();
+                  handleReject(selectedRequest.id);
+                }}
+                disabled={approveMutation.isPending || rejectMutation.isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
